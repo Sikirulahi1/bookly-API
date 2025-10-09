@@ -50,4 +50,4 @@ class BookService:
             await session.commit()
             return True
         else:
-            return None
+            return False
