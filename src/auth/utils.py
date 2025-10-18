@@ -17,14 +17,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return password_hash.verify(plain_password, hashed_password)
 
 # jwt authentication utils
-def create_access_token(user_data: dict, expires_delta: timedelta | None = None, refresh: bool = False) -> str:
+def create_access_token(user_data: dict, expiry: timedelta | None = None, refresh: bool = False) -> str:
     payload = user_data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+    if expiry:
+        expire = datetime.now(timezone.utc) + expiry
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=secrets.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    payload.update({"expiry": expire})
+    payload.update({"exp": expire})
     payload.update({"jti": str(uuid.uuid4())})
     payload.update({"refresh": refresh})
     encoded_token = jwt.encode(payload, secrets.JWT_SECRET_KEY, algorithm=secrets.JWT_ALGORITHM)

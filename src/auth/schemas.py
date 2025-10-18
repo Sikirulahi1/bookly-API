@@ -28,6 +28,6 @@ class UserLoginModel(BaseModel):
 
 class TokenData(BaseModel):
     sub: str
-    expiry: datetime
+    exp: datetime
     jti: str
     refresh: bool = False
