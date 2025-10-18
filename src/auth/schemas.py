@@ -21,3 +21,13 @@ class UserModel(BaseModel):
     password_hash: str = Field(exclude=True)
     created_at: datetime 
     updated_at: datetime 
+
+class UserLoginModel(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenData(BaseModel):
+    sub: str
+    expiry: datetime
+    jti: str
+    refresh: bool = False
