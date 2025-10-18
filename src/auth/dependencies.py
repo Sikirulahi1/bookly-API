@@ -5,12 +5,12 @@ from src.auth.utils import decode_access_token
 from fastapi.exceptions import HTTPException
 from fastapi import status
 
-class AccessTokenBearer(HTTPBearer):
+class TokenBearer(HTTPBearer):
     def __init__(self, auto_error: bool = True):
-        super(AccessTokenBearer, self).__init__(auto_error=auto_error)
+        super(TokenBearer, self).__init__(auto_error=auto_error)
 
     async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
-        creds = await super(AccessTokenBearer, self).__call__(request)
+        creds = await super(TokenBearer, self).__call__(request)
         token = creds.credentials if creds else None
         token_data = decode_access_token(token) if token else None
 
@@ -21,13 +21,31 @@ class AccessTokenBearer(HTTPBearer):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        if token_data.refresh:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token cannot be used for accessing resources",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
         return token_data
     
 
+class AccessTokenBearer(TokenBearer):
+    
+    def __init__(self, auto_error: bool = True):
+        super(AccessTokenBearer, self).__init__(auto_error=auto_error)
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
+        token_data = await super(AccessTokenBearer, self).__call__(request)
+
+        if token_data and token_data.refresh:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token cannot be used as access token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return token_data
+
+class RefreshTokenBearer(TokenBearer):
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
+        token_data = await super(RefreshTokenBearer, self).__call__(request)
+        if token_data and not token_data.refresh:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Access token cannot be used as refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return token_data
