@@ -4,6 +4,7 @@ from fastapi import Request
 from src.auth.utils import decode_access_token
 from fastapi.exceptions import HTTPException
 from fastapi import status
+from src.db.redis import token_in_blocklist
 
 class TokenBearer(HTTPBearer):
     def __init__(self, auto_error: bool = True):
@@ -18,6 +19,14 @@ class TokenBearer(HTTPBearer):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
+                resolution="Please log in again",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if await token_in_blocklist(token_data.jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token is invalid or has been revoked",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
