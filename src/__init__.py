@@ -3,13 +3,16 @@ from src.books.routes import book_router
 from src.auth.routes import auth_router
 from contextlib import asynccontextmanager
 from src.db.main import init_db
+from src.db.redis import close_redis_connection
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Server is starting up...")
     await init_db()
     yield
+
     print("Server is shutting down...")
+    await close_redis_connection()
 
 version = "v1"
 

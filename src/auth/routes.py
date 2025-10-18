@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from src.db.redis import add_jti_to_blocklist
 from .schemas import UserCreateModel, UserLoginModel
 from .service import AuthService
 from src.db.main import get_session
@@ -6,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status
 from .schemas import UserModel
 from .utils import create_access_token, decode_access_token, verify_password
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from fastapi.responses import JSONResponse
+from .dependencies import AccessTokenBearer, RefreshTokenBearer
 
 
 
@@ -56,3 +58,37 @@ async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends
             )
 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+@auth_router.post("/refresh-token")
+async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer())):
+    expiry_timestamp = token_details.exp
+    print(expiry_timestamp)
+
+    if expiry_timestamp > datetime.now(timezone.utc):
+        new_access_token = create_access_token(
+            {
+                "user_uid": token_details.user.get("user_uid"),
+                "username": token_details.user.get("username"), 
+                "email": token_details.user.get("email"),
+            }
+        )
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "access_token": new_access_token,
+                "token_type": "bearer"
+            }
+        )
+    
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired")
+
+@auth_router.post("/logout")
+async def logout_user(token_details: dict = Depends(AccessTokenBearer())):
+    jti = token_details.jti
+    await add_jti_to_blocklist(jti)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "message": "Logout successful"
+        }
+    )

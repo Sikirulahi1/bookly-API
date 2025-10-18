@@ -26,8 +26,12 @@ class UserLoginModel(BaseModel):
     email: EmailStr
     password: str
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 class TokenData(BaseModel):
-    sub: str
+    user: dict
     exp: datetime
     jti: str
     refresh: bool = False
