@@ -19,14 +19,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # jwt authentication utils
 def create_access_token(user_data: dict, expiry: timedelta | None = None, refresh: bool = False) -> str:
     payload = user_data.copy()
-    if expiry:
-        expire = datetime.now(timezone.utc) + expiry
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=secrets.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + (expiry or timedelta(minutes=secrets.ACCESS_TOKEN_EXPIRE_MINUTES))
 
-    payload.update({"exp": expire})
-    payload.update({"jti": str(uuid.uuid4())})
-    payload.update({"refresh": refresh})
+    payload.update(
+        {
+            "user": {
+                "user_uid": user_data.get("user_uid"),
+                "username": user_data.get("username"),
+                "email": user_data.get("email"),
+            },
+            "exp": expire,
+            "jti": str(uuid.uuid4()),
+            "refresh": refresh
+        }
+    )
     encoded_token = jwt.encode(payload, secrets.JWT_SECRET_KEY, algorithm=secrets.JWT_ALGORITHM)
     return encoded_token
 
@@ -36,7 +42,7 @@ def decode_access_token(token: str) -> TokenData | None:
         payload = jwt.decode(token, secrets.JWT_SECRET_KEY, algorithms=[secrets.JWT_ALGORITHM])
         token_data = TokenData(**payload)
         return token_data
-    except jwt.PyJWTError as e:
-        logging.exception("Token decoding failed", exc_info=e)
+    except InvalidTokenError:
+        logging.exception("Token decoding failed")
         return None
 
