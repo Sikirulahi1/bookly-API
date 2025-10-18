@@ -39,3 +39,4 @@ def decode_access_token(token: str) -> TokenData | None:
     except jwt.PyJWTError as e:
         logging.exception("Token decoding failed", exc_info=e)
         return None
+
