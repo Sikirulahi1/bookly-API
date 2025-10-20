@@ -1,10 +1,15 @@
 from fastapi.security import  HTTPBearer, HTTPAuthorizationCredentials
 from src.config import secrets
-from fastapi import Request
+from fastapi import Request, Depends
 from src.auth.utils import decode_access_token
 from fastapi.exceptions import HTTPException
 from fastapi import status
 from src.db.redis import token_in_blocklist
+from src.db.main import get_session
+from sqlalchemy.ext.asyncio import AsyncSession
+from .service import AuthService
+
+user_service = AuthService()
 
 class TokenBearer(HTTPBearer):
     def __init__(self, auto_error: bool = True):
@@ -59,3 +64,14 @@ class RefreshTokenBearer(TokenBearer):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return token_data
+    
+
+async def get_current_user(token_data: dict=Depends(AccessTokenBearer()), session: AsyncSession=Depends(get_session)):
+    user_email = token_data.user.get("email")
+    user =  await user_service.get_user_by_email(user_email, session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return user

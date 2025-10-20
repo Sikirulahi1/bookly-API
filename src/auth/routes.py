@@ -9,7 +9,7 @@ from .schemas import UserModel
 from .utils import create_access_token, decode_access_token, verify_password
 from datetime import timedelta, datetime, timezone
 from fastapi.responses import JSONResponse
-from .dependencies import AccessTokenBearer, RefreshTokenBearer
+from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_current_user
 
 
 
@@ -81,6 +81,10 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
         )
     
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired")
+
+@auth_router.get("/me", response_model=UserModel)
+async def get_current_user(user = Depends(get_current_user)):
+    return user
 
 @auth_router.post("/logout")
 async def logout_user(token_details: dict = Depends(AccessTokenBearer())):
