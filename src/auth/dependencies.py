@@ -33,6 +33,7 @@ class TokenBearer(HTTPBearer):
         return token_data
     
 
+
 class AccessTokenBearer(TokenBearer):
     
     def __init__(self, auto_error: bool = True):
