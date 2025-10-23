@@ -9,12 +9,13 @@ from .schemas import UserModel
 from .utils import create_access_token, decode_access_token, verify_password
 from datetime import timedelta, datetime, timezone
 from fastapi.responses import JSONResponse
-from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_current_user
+from .dependencies import AccessTokenBearer, RefreshTokenBearer, get_current_user, RoleChecker
 
 
 
 auth_router = APIRouter()
 auth_service = AuthService()
+role_checker = RoleChecker(allowed_roles=["admin", "user"])
 
 @auth_router.post("/signup", response_model=UserModel, status_code=status.HTTP_201_CREATED)
 async def create_user_account(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)):
@@ -39,6 +40,7 @@ async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends
                 "user_uid": str(user.uid),
                 "username": user.username,
                 "email": user.email,
+                "role": user.role
             }
             access_token = create_access_token(user_data)
             refresh_token = create_access_token(user_data, refresh=True, expiry= timedelta(days=7))
@@ -83,7 +85,7 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired")
 
 @auth_router.get("/me", response_model=UserModel)
-async def get_current_user(user = Depends(get_current_user)):
+async def get_current_user(user = Depends(get_current_user), _:bool=Depends(role_checker)):
     return user
 
 @auth_router.post("/logout")
