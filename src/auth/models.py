@@ -1,8 +1,11 @@
-from sqlmodel import SQLModel
+from typing import TYPE_CHECKING
+from sqlmodel import Relationship, SQLModel
 import uuid
 from sqlmodel import Field, Column
 from datetime import datetime
 import sqlalchemy.dialects.postgresql as pg
+if TYPE_CHECKING:
+    from src.books.models import Book
 
 
 
@@ -22,6 +25,7 @@ class User(SQLModel, table=True):
     password_hash: str = Field(exclude=True)
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow))
     updated_at: datetime = Field(sa_column=Column(pg.TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow))
+    books: list["Book"] = Relationship(back_populates="user", sa_relationship_kwargs={'lazy': 'selectin'})
 
 
     def __repr__(self):
